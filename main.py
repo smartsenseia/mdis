@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 ALGO_DIR = os.path.join(BASE_DIR, "ALGORITHMS_AND_DATA")
 FASTAPI_DIR = os.path.join(BASE_DIR, "FASTAPI")
-REACT_DIR = os.path.join(BASE_DIR, "REACT", "Frontend")
+REACT_DIR = os.path.join(BASE_DIR, "REACT", "frontend")
 
 SOM_SCRIPT = os.path.join(ALGO_DIR, "SOM.py")
 
@@ -52,6 +52,10 @@ def safe_call(fn, *args, **kwargs):
         return True, fn(*args, **kwargs)
     except Exception as e:
         return False, e
+
+
+def processo_esta_vivo(proc: Optional[subprocess.Popen]) -> bool:
+    return proc is not None and proc.poll() is None
 
 
 # ==========================================================
@@ -91,52 +95,50 @@ def matar_processos_portas(*portas: int):
 
 
 # ==========================================================
-# React
+# React produção
 # ==========================================================
 
 def build_react():
 
-    dist_dir = os.path.join(REACT_DIR, "dist")
+    package_json = os.path.join(REACT_DIR, "package.json")
 
-    if os.path.exists(dist_dir):
-        log("✅ React build já existe.")
-        return True
+    if not os.path.exists(package_json):
+        log(f"❌ package.json não encontrado em: {REACT_DIR}")
+        return False
 
-    log("⚙️ Gerando build do React...")
+    node_modules = os.path.join(REACT_DIR, "node_modules")
+
+    if not os.path.exists(node_modules):
+        log("📦 node_modules não encontrado. Rodando npm install...")
+
+        result = subprocess.run(
+            ["npm", "install"],
+            cwd=REACT_DIR
+        )
+
+        if result.returncode != 0:
+            log("❌ Falha ao executar npm install.")
+            return False
+
+    log("⚙️ Gerando build de produção do React...")
 
     result = subprocess.run(
         ["npm", "run", "build"],
         cwd=REACT_DIR
     )
 
-    if result.returncode == 0:
-        log("✅ React build gerado com sucesso.")
-        return True
-    else:
-        log("❌ Falha ao gerar build do React.")
+    if result.returncode != 0:
+        log("❌ Falha ao gerar build de produção do React.")
         return False
 
+    dist_dir = os.path.join(REACT_DIR, "dist")
 
-def iniciar_react():
+    if not os.path.exists(dist_dir):
+        log("❌ Build terminou, mas a pasta dist não foi encontrada.")
+        return False
 
-    return subprocess.Popen(
-        [
-            "npm",
-            "run",
-            "dev",
-            "--",
-            "--host",
-            "0.0.0.0",
-            "--port",
-            "5173"
-        ],
-        cwd=REACT_DIR,
-        shell=False,
-    )
-
-
-def processo_esta_vivo(proc: Optional[subprocess.Popen]) -> bool:
-    return proc is not None and proc.poll() is None
+    log("✅ Build de produção gerado em REACT/frontend/dist.")
+    return True
 
 
 # ==========================================================
@@ -182,13 +184,15 @@ def iniciar_som_service():
 
 def main():
 
-    matar_processos_portas(8000, 5173)
+    matar_processos_portas(8000)
 
     # ------------------------------------------------------
-    # React build
+    # React build produção
     # ------------------------------------------------------
 
-    build_react()
+    if not build_react():
+        log("🛑 Sistema interrompido porque o build do React falhou.")
+        return
 
     # ------------------------------------------------------
     # FastAPI
@@ -201,6 +205,7 @@ def main():
     if ok:
         fastapi_proc = res
         log("✅ FastAPI iniciado.")
+        log("🌐 Acesse: http://192.168.0.6:8000")
     else:
         log(f"⚠️ FastAPI falhou: {res}")
 
@@ -210,28 +215,6 @@ def main():
         log("✅ FastAPI está vivo.")
     else:
         log("⚠️ FastAPI parece offline.")
-
-    # ------------------------------------------------------
-    # React
-    # ------------------------------------------------------
-
-    react_proc = None
-
-    ok, res = safe_call(iniciar_react)
-
-    if ok:
-        react_proc = res
-        log("✅ React iniciado.")
-        log("🌐 Acesse: http://192.168.0.50:5173")
-    else:
-        log(f"⚠️ React falhou: {res}")
-
-    time.sleep(2)
-
-    if processo_esta_vivo(react_proc):
-        log("✅ React está vivo.")
-    else:
-        log("⚠️ React parece offline.")
 
     # ------------------------------------------------------
     # SOM
@@ -272,7 +255,7 @@ def main():
 
     finally:
 
-        for proc in (som_proc, react_proc, fastapi_proc):
+        for proc in (som_proc, fastapi_proc):
 
             try:
                 if proc and proc.poll() is None:
