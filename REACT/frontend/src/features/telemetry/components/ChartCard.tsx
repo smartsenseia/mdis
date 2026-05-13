@@ -13,16 +13,16 @@ import {
 const ASSET_ID = "AQ21BR02" as const;
 const MAX_POINTS = 200;
 
-// =======================================================
-// Hook para buffer incremental (evita duplicar pontos)
-// =======================================================
+type SeriesPoint = {
+  timestamp: string;
+  value: number;
+};
+
 function useLiveSeries(
-  incoming: Array<{ timestamp: string; value: number }> | undefined,
+  incoming: Array<SeriesPoint> | undefined,
   maxPoints = MAX_POINTS
 ) {
-  const [buf, setBuf] = useState<Array<{ timestamp: string; value: number }>>(
-    []
-  );
+  const [buf, setBuf] = useState<Array<SeriesPoint>>([]);
   const lastTsRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -46,9 +46,6 @@ function useLiveSeries(
   return buf;
 }
 
-// =======================================================
-// Card de gráfico reutilizável
-// =======================================================
 function ChartCard({
   title,
   unit,
@@ -57,20 +54,19 @@ function ChartCard({
 }: {
   title: string;
   unit: string;
-  series: Array<{ timestamp: string; value: number }>;
+  series: Array<SeriesPoint>;
   loading: boolean;
 }) {
   return (
     <div
       style={{
-        flex: 1,
+        minHeight: 260,
         display: "flex",
         flexDirection: "column",
         borderRadius: 14,
         padding: 16,
         background: "rgba(255,255,255,0.06)",
         border: "1px solid rgba(255,255,255,0.10)",
-        minHeight: 0,
       }}
     >
       <div style={{ fontWeight: 700, color: "white", marginBottom: 8 }}>
@@ -90,38 +86,39 @@ function ChartCard({
           Carregando gráfico…
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={220}>
           <LineChart data={series}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              opacity={0.12}
-              vertical={false}
-            />
+            <CartesianGrid strokeDasharray="3 3" opacity={0.12} vertical={false} />
+
             <XAxis
               dataKey="timestamp"
               tick={{ fontSize: 11, fill: "rgba(255,255,255,0.5)" }}
               height={24}
             />
+
             <YAxis
               tick={{ fontSize: 11, fill: "rgba(255,255,255,0.5)" }}
               width={70}
               domain={["auto", "auto"]}
             />
+
             <Tooltip
               isAnimationActive={false}
               contentStyle={{
                 background: "#1a1a1a",
                 border: "none",
                 borderRadius: 8,
+                color: "white",
               }}
-              formatter={(value: any) => {
+              formatter={(value: unknown) => {
                 const num = Number(value);
                 return [
                   !isNaN(num) ? `${num.toFixed(3)} ${unit}` : `- ${unit}`,
-                  "",
+                  title,
                 ];
               }}
             />
+
             <Line
               type="monotone"
               dataKey="value"
@@ -136,52 +133,138 @@ function ChartCard({
   );
 }
 
-// =======================================================
-// Página principal
-// =======================================================
 export default function TelemetryOverviewCharts() {
-  // 🔹 Fluxo de permeado
-  const fluxoQ = useMeasurementsSeries({
+  const temp1Q = useMeasurementsSeries({
     assetId: ASSET_ID,
-    field: "fluxo_permeado",
+    field: "temp_1",
     refetchIntervalMs: 5_000,
     limit: MAX_POINTS,
   });
 
-  // 🔹 Condutividade lado quente
-  const condhotQ = useMeasurementsSeries({
+  const temp2Q = useMeasurementsSeries({
     assetId: ASSET_ID,
-    field: "condhot",
+    field: "temp_2",
     refetchIntervalMs: 5_000,
     limit: MAX_POINTS,
   });
 
-  const fluxoSeries = useLiveSeries(fluxoQ.data?.series, MAX_POINTS);
-  const condhotSeries = useLiveSeries(condhotQ.data?.series, MAX_POINTS);
+  const temp3Q = useMeasurementsSeries({
+    assetId: ASSET_ID,
+    field: "temp_3",
+    refetchIntervalMs: 5_000,
+    limit: MAX_POINTS,
+  });
+
+  const temp4Q = useMeasurementsSeries({
+    assetId: ASSET_ID,
+    field: "temp_4",
+    refetchIntervalMs: 5_000,
+    limit: MAX_POINTS,
+  });
+
+  const pressao1Q = useMeasurementsSeries({
+    assetId: ASSET_ID,
+    field: "pressao_1",
+    refetchIntervalMs: 5_000,
+    limit: MAX_POINTS,
+  });
+
+  const pressao2Q = useMeasurementsSeries({
+    assetId: ASSET_ID,
+    field: "pressao_2",
+    refetchIntervalMs: 5_000,
+    limit: MAX_POINTS,
+  });
+
+  const vazao1Q = useMeasurementsSeries({
+    assetId: ASSET_ID,
+    field: "vazao_1",
+    refetchIntervalMs: 5_000,
+    limit: MAX_POINTS,
+  });
+
+  const valvulaQ = useMeasurementsSeries({
+    assetId: ASSET_ID,
+    field: "valvula",
+    refetchIntervalMs: 5_000,
+    limit: MAX_POINTS,
+  });
+
+  const temp1Series = useLiveSeries(temp1Q.data?.series, MAX_POINTS);
+  const temp2Series = useLiveSeries(temp2Q.data?.series, MAX_POINTS);
+  const temp3Series = useLiveSeries(temp3Q.data?.series, MAX_POINTS);
+  const temp4Series = useLiveSeries(temp4Q.data?.series, MAX_POINTS);
+
+  const pressao1Series = useLiveSeries(pressao1Q.data?.series, MAX_POINTS);
+  const pressao2Series = useLiveSeries(pressao2Q.data?.series, MAX_POINTS);
+
+  const vazao1Series = useLiveSeries(vazao1Q.data?.series, MAX_POINTS);
+  const valvulaSeries = useLiveSeries(valvulaQ.data?.series, MAX_POINTS);
 
   return (
     <div
       style={{
-        height: "90vh",
-        display: "flex",
-        flexDirection: "column",
+        minHeight: "90vh",
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
         gap: 16,
         padding: 16,
-        minHeight: 0,
       }}
     >
       <ChartCard
-        title="Fluxo de Permeado"
-        unit="kg·m⁻²·h⁻¹"
-        series={fluxoSeries}
-        loading={fluxoQ.isLoading}
+        title="Temperatura 1"
+        unit="°C"
+        series={temp1Series}
+        loading={temp1Q.isLoading}
       />
 
       <ChartCard
-        title="Condutividade — Lado Quente"
-        unit="µS/cm"
-        series={condhotSeries}
-        loading={condhotQ.isLoading}
+        title="Temperatura 2"
+        unit="°C"
+        series={temp2Series}
+        loading={temp2Q.isLoading}
+      />
+
+      <ChartCard
+        title="Temperatura 3"
+        unit="°C"
+        series={temp3Series}
+        loading={temp3Q.isLoading}
+      />
+
+      <ChartCard
+        title="Temperatura 4"
+        unit="°C"
+        series={temp4Series}
+        loading={temp4Q.isLoading}
+      />
+
+      <ChartCard
+        title="Pressão 1"
+        unit="bar"
+        series={pressao1Series}
+        loading={pressao1Q.isLoading}
+      />
+
+      <ChartCard
+        title="Pressão 2"
+        unit="bar"
+        series={pressao2Series}
+        loading={pressao2Q.isLoading}
+      />
+
+      <ChartCard
+        title="Vazão 1"
+        unit="L/h"
+        series={vazao1Series}
+        loading={vazao1Q.isLoading}
+      />
+
+      <ChartCard
+        title="Abertura da Válvula"
+        unit="%"
+        series={valvulaSeries}
+        loading={valvulaQ.isLoading}
       />
     </div>
   );

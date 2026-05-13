@@ -1,19 +1,7 @@
 import { useQuery, keepPreviousData, type UseQueryResult } from "@tanstack/react-query";
 import { getMeasurements, type MeasurementDTO } from "../api/telemetry.api";
 
-/**
- * ESTE HOOK CUSTOMIZADO GERENCIA A BUSCA E O PROCESSAMENTO DE DADOS DE TELEMETRIA.
- * Ele utiliza o TanStack Query para realizar chamadas assíncronas à API, tratando
- * a atualização automática (polling), o cache de dados e a transformação do formato
- * do backend (ordem decrescente) para o formato necessário nos gráficos (ordem cronológica).
- */
-
-// 🔹 Campos válidos de medição (alinhados ao backend)
 export type MeasurementField =
-  | "fluxo_permeado"
-  | "condhot"
-  | "sec"
-  | "gor"
   | "temp_1"
   | "temp_2"
   | "temp_3"
@@ -22,26 +10,33 @@ export type MeasurementField =
   | "temp_6"
   | "temp_7"
   | "temp_8"
+  | "temp_9"
+  | "temp_10"
+  | "temp_11"
+  | "temp_A"
+  | "temp_B"
   | "pressao_1"
   | "pressao_2"
   | "pressao_3"
   | "pressao_4"
-  | "pressao_5";
+  | "pressao_5"
+  | "vazao_1"
+  | "vazao_2"
+  | "vazao_3"
+  | "vazao_4"
+  | "valvula";
 
-// Definição do formato de um ponto individual no gráfico
-type SeriesPoint = { timestamp: string; value: number };
+type SeriesPoint = {
+  timestamp: string;
+  value: number;
+};
 
-/**
- * useMeasurementsSeries
- * Hook para buscar séries temporais de medições de um ativo específico.
- */
 export function useMeasurementsSeries(options: {
-  assetId: string;               // Identificador único do equipamento
-  field: MeasurementField;       // Campo de processo a ser buscado
-  limit?: number;                // Quantidade máxima de pontos (default: 200)
-  refetchIntervalMs?: number;    // Intervalo de atualização automática (default: 10s)
+  assetId: string;
+  field: MeasurementField;
+  limit?: number;
+  refetchIntervalMs?: number;
 }): UseQueryResult<{ series: SeriesPoint[] }, Error> {
-
   const { assetId, field, limit = 200, refetchIntervalMs = 10_000 } = options;
 
   return useQuery<{ series: SeriesPoint[] }, Error>({
@@ -56,14 +51,15 @@ export function useMeasurementsSeries(options: {
 
       const series = rows
         .map((m) => {
-          const v = m[field]; // acesso dinâmico, agora seguro
+          const value = m[field];
+
           return {
             timestamp: m.timestamp,
-            value: typeof v === "number" ? v : NaN,
+            value: typeof value === "number" ? value : Number(value),
           };
         })
         .filter((p) => Number.isFinite(p.value))
-        .reverse(); // DESC → ASC
+        .reverse();
 
       return { series };
     },

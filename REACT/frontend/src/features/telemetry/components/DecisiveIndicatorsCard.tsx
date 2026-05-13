@@ -3,6 +3,8 @@ import { useMeasurementLatest } from "../hooks/useMeasurementsLatest";
 
 const ASSET_ID = "AQ21BR02" as const;
 
+type NumericValue = number | null;
+
 type CardItem = {
   key: string;
   label: string;
@@ -11,24 +13,61 @@ type CardItem = {
 };
 
 type LastValues = {
-  gor: number | null;
-  sec: number | null;
-  fp: number | null;
+  temp_1: NumericValue;
+  temp_2: NumericValue;
+  temp_3: NumericValue;
+  temp_4: NumericValue;
+  temp_5: NumericValue;
+  temp_6: NumericValue;
+  temp_7: NumericValue;
+  temp_8: NumericValue;
+  temp_9: NumericValue;
+  temp_10: NumericValue;
+  temp_11: NumericValue;
+  temp_A: NumericValue;
+  temp_B: NumericValue;
 
-  temp_1: number | null;
-  temp_2: number | null;
-  temp_3: number | null;
-  temp_4: number | null;
-  temp_5: number | null;
-  temp_6: number | null;
-  temp_7: number | null;
-  temp_8: number | null;
+  pressao_1: NumericValue;
+  pressao_2: NumericValue;
+  pressao_3: NumericValue;
+  pressao_4: NumericValue;
+  pressao_5: NumericValue;
 
-  pressao_1: number | null;
-  pressao_2: number | null;
-  pressao_3: number | null;
-  pressao_4: number | null;
-  pressao_5: number | null;
+  vazao_1: NumericValue;
+  vazao_2: NumericValue;
+  vazao_3: NumericValue;
+  vazao_4: NumericValue;
+
+  valvula: NumericValue;
+};
+
+const initialLastValues: LastValues = {
+  temp_1: null,
+  temp_2: null,
+  temp_3: null,
+  temp_4: null,
+  temp_5: null,
+  temp_6: null,
+  temp_7: null,
+  temp_8: null,
+  temp_9: null,
+  temp_10: null,
+  temp_11: null,
+  temp_A: null,
+  temp_B: null,
+
+  pressao_1: null,
+  pressao_2: null,
+  pressao_3: null,
+  pressao_4: null,
+  pressao_5: null,
+
+  vazao_1: null,
+  vazao_2: null,
+  vazao_3: null,
+  vazao_4: null,
+
+  valvula: null,
 };
 
 export default function DecisiveIndicatorsCard() {
@@ -37,58 +76,18 @@ export default function DecisiveIndicatorsCard() {
     refetchIntervalMs: 2000,
   });
 
-  const [last, setLast] = useState<LastValues>({
-    gor: null,
-    sec: null,
-    fp: null,
-
-    temp_1: null,
-    temp_2: null,
-    temp_3: null,
-    temp_4: null,
-    temp_5: null,
-    temp_6: null,
-    temp_7: null,
-    temp_8: null,
-
-    pressao_1: null,
-    pressao_2: null,
-    pressao_3: null,
-    pressao_4: null,
-    pressao_5: null,
-  });
+  const [last, setLast] = useState<LastValues>(initialLastValues);
 
   useEffect(() => {
+    if (!data) return;
+
     setLast((prev) => {
       const next = { ...prev };
 
-      const fields: (keyof LastValues)[] = [
-        "gor",
-        "sec",
-        "fp",
-        "temp_1",
-        "temp_2",
-        "temp_3",
-        "temp_4",
-        "temp_5",
-        "temp_6",
-        "temp_7",
-        "temp_8",
-        "pressao_1",
-        "pressao_2",
-        "pressao_3",
-        "pressao_4",
-        "pressao_5",
-      ];
+      const fields = Object.keys(initialLastValues) as (keyof LastValues)[];
 
       fields.forEach((field) => {
-        let value: unknown;
-
-        if (field === "fp") {
-          value = data?.fluxo_permeado;
-        } else {
-          value = data?.[field as keyof typeof data];
-        }
+        const value = data[field as keyof typeof data];
 
         if (typeof value === "number" && Number.isFinite(value)) {
           next[field] = value;
@@ -100,85 +99,86 @@ export default function DecisiveIndicatorsCard() {
     });
   }, [data]);
 
-  const indicatorItems: CardItem[] = useMemo(() => {
-    const out: CardItem[] = [];
-
-    if (typeof last.gor === "number") {
-      out.push({ key: "gor", label: "GOR", value: last.gor, unit: "-" });
-    }
-
-    if (typeof last.sec === "number") {
-      out.push({ key: "sec", label: "SEC", value: last.sec, unit: "kWh/m³" });
-    }
-
-    if (typeof last.fp === "number") {
-      out.push({
-        key: "fp",
-        label: "FP (Fluxo de Permeado)",
-        value: last.fp,
-        unit: "kg·m⁻²·h⁻¹",
-      });
-    }
-
-    return out;
-  }, [last.gor, last.sec, last.fp]);
-
   const temperatureItems: CardItem[] = useMemo(() => {
     const labels = [
-      { key: "temp_1", label: "T1 - Entrada lado quente" },
-      { key: "temp_2", label: "T2 - Saída lado quente" },
-      { key: "temp_3", label: "T3 - Entrada lado frio" },
-      { key: "temp_4", label: "T4 - Saída lado frio" },
-      { key: "temp_5", label: "T5 - Entrada refrigeração" },
-      { key: "temp_6", label: "T6 - Saída refrigeração" },
-      { key: "temp_7", label: "T7 - Ambiente" },
-      { key: "temp_8", label: "T8 - Módulo" },
+      { key: "temp_1", label: "T1" },
+      { key: "temp_2", label: "T2" },
+      { key: "temp_3", label: "T3" },
+      { key: "temp_4", label: "T4" },
+      { key: "temp_5", label: "T5" },
+      { key: "temp_6", label: "T6" },
+      { key: "temp_7", label: "T7" },
+      { key: "temp_8", label: "T8" },
+      { key: "temp_9", label: "T9" },
+      { key: "temp_10", label: "T10" },
+      { key: "temp_11", label: "T11" },
+      { key: "temp_A", label: "Temperatura A" },
+      { key: "temp_B", label: "Temperatura B" },
     ] as const;
 
     return labels
       .map((item) => {
         const value = last[item.key];
         if (typeof value !== "number") return null;
-
-        return {
-          key: item.key,
-          label: item.label,
-          value,
-          unit: "°C",
-        };
+        return { key: item.key, label: item.label, value, unit: "°C" };
       })
       .filter(Boolean) as CardItem[];
   }, [last]);
 
   const pressureItems: CardItem[] = useMemo(() => {
     const labels = [
-      { key: "pressao_1", label: "P1 - Entrada lado quente" },
-      { key: "pressao_2", label: "P2 - Saída lado quente" },
-      { key: "pressao_3", label: "P3 - Entrada lado frio" },
-      { key: "pressao_4", label: "P4 - Saída lado frio" },
-      { key: "pressao_5", label: "P5 - Reservatório de permeado" },
+      { key: "pressao_1", label: "Pressão 1" },
+      { key: "pressao_2", label: "Pressão 2" },
+      { key: "pressao_3", label: "Pressão 3" },
+      { key: "pressao_4", label: "Pressão 4" },
+      { key: "pressao_5", label: "Pressão 5" },
     ] as const;
 
     return labels
       .map((item) => {
         const value = last[item.key];
         if (typeof value !== "number") return null;
-
-        return {
-          key: item.key,
-          label: item.label,
-          value,
-          unit: "bar",
-        };
+        return { key: item.key, label: item.label, value, unit: "bar" };
       })
       .filter(Boolean) as CardItem[];
   }, [last]);
 
+  const flowItems: CardItem[] = useMemo(() => {
+    const labels = [
+      { key: "vazao_1", label: "Vazão 1" },
+      { key: "vazao_2", label: "Vazão 2" },
+      { key: "vazao_3", label: "Vazão 3" },
+      { key: "vazao_4", label: "Vazão 4" },
+    ] as const;
+
+    return labels
+      .map((item) => {
+        const value = last[item.key];
+        if (typeof value !== "number") return null;
+        return { key: item.key, label: item.label, value, unit: "L/h" };
+      })
+      .filter(Boolean) as CardItem[];
+  }, [last]);
+
+  const actuatorItems: CardItem[] = useMemo(() => {
+    if (typeof last.valvula !== "number") return [];
+
+    return [
+      {
+        key: "valvula",
+        label: "Abertura da Válvula",
+        value: last.valvula,
+        unit: "%",
+      },
+    ];
+  }, [last.valvula]);
+
   const showInitialLoading =
     isLoading &&
-    indicatorItems.length === 0 &&
     temperatureItems.length === 0 &&
-    pressureItems.length === 0;
+    pressureItems.length === 0 &&
+    flowItems.length === 0 &&
+    actuatorItems.length === 0;
 
   const renderSection = (title: string, items: CardItem[]) => {
     if (items.length === 0) return null;
@@ -230,16 +230,17 @@ export default function DecisiveIndicatorsCard() {
       }}
     >
       <div style={{ fontWeight: 700, color: "white", marginBottom: 12 }}>
-        Indicadores Decisivos
+        Dados Atuais do CLP
       </div>
 
       {showInitialLoading ? (
         <div style={{ color: "white", opacity: 0.7, fontSize: 13 }}>
           Carregando…
         </div>
-      ) : indicatorItems.length === 0 &&
-        temperatureItems.length === 0 &&
-        pressureItems.length === 0 ? (
+      ) : temperatureItems.length === 0 &&
+        pressureItems.length === 0 &&
+        flowItems.length === 0 &&
+        actuatorItems.length === 0 ? (
         <div style={{ color: "white", opacity: 0.7, fontSize: 13 }}>
           Sem dados no momento.
         </div>
@@ -247,7 +248,8 @@ export default function DecisiveIndicatorsCard() {
         <>
           {renderSection("Temperaturas", temperatureItems)}
           {renderSection("Pressões", pressureItems)}
-          {renderSection("Indicadores", indicatorItems)}
+          {renderSection("Vazões", flowItems)}
+          {renderSection("Atuador", actuatorItems)}
         </>
       )}
     </div>
